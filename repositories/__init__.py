@@ -1,0 +1,5 @@
+# repositories/__init__.py
+from repositories.employee_repository import EmployeeRepository
+from repositories.client_repository import ClientRepository
+from repositories.contract_repository import ContractRepository
+from repositories.event_repository import EventRepository

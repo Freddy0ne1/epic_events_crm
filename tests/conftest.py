@@ -15,6 +15,10 @@ from database import Base
 from models import Employee, Client, Contract, Event
 from models.employee import Department
 from utils.security import hash_password
+from models.client import Client
+from models.contract import Contract
+from models.event import Event
+from datetime import datetime
 
 
 # Base de données SQLite en mémoire — rapide et isolée
@@ -92,3 +96,89 @@ def sample_support(test_session):
         plain_password="MotDePasse789!",
         department=Department.SUPPORT
     )
+
+
+@pytest.fixture
+def sample_client(test_session, sample_commercial):
+    """Crée un client de test associé au commercial."""
+    client = Client(
+        full_name="Kevin Casey",
+        email="kevin@startup.io",
+        phone="+678 123 456 78",
+        company_name="Cool Startup LLC",
+        sales_contact_id=sample_commercial.id
+    )
+    test_session.add(client)
+    test_session.commit()
+    test_session.refresh(client)
+    return client
+
+
+@pytest.fixture
+def sample_contract(test_session, sample_client, sample_commercial):
+    """Crée un contrat de test signé."""
+    contract = Contract(
+        client_id=sample_client.id,
+        sales_contact_id=sample_commercial.id,
+        total_amount=5000.0,
+        remaining_amount=2000.0,
+        is_signed=True
+    )
+    test_session.add(contract)
+    test_session.commit()
+    test_session.refresh(contract)
+    return contract
+
+
+@pytest.fixture
+def sample_unsigned_contract(test_session, sample_client, sample_commercial):
+    """Crée un contrat de test NON signé."""
+    contract = Contract(
+        client_id=sample_client.id,
+        sales_contact_id=sample_commercial.id,
+        total_amount=3000.0,
+        remaining_amount=3000.0,
+        is_signed=False
+    )
+    test_session.add(contract)
+    test_session.commit()
+    test_session.refresh(contract)
+    return contract
+
+
+@pytest.fixture
+def sample_event(test_session, sample_contract, sample_support):
+    """Crée un événement de test avec support assigné."""
+    event = Event(
+        name="John Quick Wedding",
+        contract_id=sample_contract.id,
+        support_contact_id=sample_support.id,
+        start_date=datetime(2024, 6, 4, 13, 0),
+        end_date=datetime(2024, 6, 5, 2, 0),
+        location="53 Rue du Château, France",
+        attendees=75,
+        notes="Wedding starts at 3PM"
+    )
+    test_session.add(event)
+    test_session.commit()
+    test_session.refresh(event)
+    return event
+
+
+@pytest.fixture
+def sample_event_no_support(test_session, sample_contract):
+    """Crée un événement de test SANS support assigné."""
+    event = Event(
+        name="General Assembly",
+        contract_id=sample_contract.id,
+        support_contact_id=None,
+        start_date=datetime(2024, 5, 5, 15, 0),
+        end_date=datetime(2024, 5, 5, 17, 0),
+        location="Salle des fêtes de Mufflins",
+        attendees=200,
+        notes="Assemblée générale"
+    )
+    test_session.add(event)
+    test_session.commit()
+    test_session.refresh(event)
+    return event
