@@ -11,6 +11,7 @@ from utils.permissions import (
     get_current_department, get_current_employee_id
 )
 from cli.display import success, error, info, print_contracts
+from utils.sentry import log_contract_signed, log_exception
 
 
 @click.group()
@@ -115,13 +116,33 @@ def update_contract(contract_id):
         remaining = click.prompt("Nouveau montant restant", default="", show_default=False)
         sign = click.confirm("Marquer comme signé ?", default=contract_obj.is_signed)
 
+        # On retient si le contrat était déjà signé AVANT la mise à jour
+        was_signed_before = contract_obj.is_signed
+
         updated = repo.update_contract(
             contract_id=contract_id,
             total_amount=float(total) if total else None,
             remaining_amount=float(remaining) if remaining else None,
             is_signed=sign
         )
+
+        # ↓ Journalisation Sentry — signature d'un contrat
+        # On journalise UNIQUEMENT si le contrat vient d'être signé
+        # (pas s'il était déjà signé avant)
+        if sign and not was_signed_before:
+            log_contract_signed({
+                "id": updated.id,
+                "client": updated.client.full_name if updated.client else "Unknown",
+                "total_amount": updated.total_amount,
+                "remaining_amount": updated.remaining_amount
+            })
+
         success(f"Contrat #{updated.id} mis à jour avec succès.")
+
+    except Exception as e:
+        # ↓ Capture toute erreur inattendue et l'envoie à Sentry
+        log_exception(e, {"action": "update_contract", "contract_id": contract_id})
+        error(f"Erreur inattendue : {e}")
 
     finally:
         session.close()

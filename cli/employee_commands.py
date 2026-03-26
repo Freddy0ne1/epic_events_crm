@@ -10,6 +10,7 @@ from repositories.employee_repository import EmployeeRepository
 from models.employee import Department
 from utils.permissions import can_manage_employees, require_authentication
 from cli.display import success, error, info, print_employees
+from utils.sentry import log_employee_event, log_exception
 
 
 @click.group()
@@ -44,34 +45,45 @@ def create_employee():
     employee_number = click.prompt("Numéro d'employé (ex: EMP-004)")
     full_name = click.prompt("Nom complet")
     email = click.prompt("Email")
-    password = click.prompt("Mot de passe", hide_input=True,
-                            confirmation_prompt="Confirmez le mot de passe")
-
-    # Choix du département
-    dept_choices = click.Choice([d.value for d in Department])
-    department_value = click.prompt(
-        "Département",
-        type=dept_choices
+    password = click.prompt(
+        "Mot de passe",
+        hide_input=True,
+        confirmation_prompt="Confirmez le mot de passe"
     )
+
+    dept_choices = click.Choice([d.value for d in Department])
+    department_value = click.prompt("Département", type=dept_choices)
     department = Department(department_value)
 
     session = SessionLocal()
     try:
         repo = EmployeeRepository(session)
 
-        # Vérifier si l'email existe déjà
         if repo.get_by_email(email):
             error(f"Un employé avec l'email '{email}' existe déjà.")
             return
 
-        employee = repo.create_employee(
+        employee_obj = repo.create_employee(
             employee_number=employee_number,
             full_name=full_name,
             email=email,
             plain_password=password,
             department=department
         )
-        success(f"Collaborateur '{employee.full_name}' créé avec succès (ID: {employee.id})")
+
+        # Journalisation Sentry — création d'un collaborateur
+        log_employee_event("created", {
+            "id": employee_obj.id,
+            "name": employee_obj.full_name,
+            "email": employee_obj.email,
+            "department": employee_obj.department.value
+        })
+
+        success(f"Collaborateur '{employee_obj.full_name}' créé (ID: {employee_obj.id})")
+
+    except Exception as e:
+        log_exception(e, {"action": "create_employee", "email": email})
+        error(f"Erreur inattendue : {e}")
 
     finally:
         session.close()
@@ -108,6 +120,7 @@ def update_employee(employee_id):
 
         department = Department(department_value) if department_value else None
 
+        # ↓ La mise à jour en base
         updated = repo.update_employee(
             employee_id=employee_id,
             full_name=full_name or None,
@@ -115,7 +128,19 @@ def update_employee(employee_id):
             department=department
         )
 
+        # ↓ Journalisation Sentry — modification d'un collaborateur
+        log_employee_event("updated", {
+            "id": updated.id,
+            "name": updated.full_name,
+            "department": updated.department.value
+        })
+
         success(f"Collaborateur '{updated.full_name}' mis à jour avec succès.")
+
+    except Exception as e:
+        # ↓ Capture toute erreur inattendue et l'envoie à Sentry
+        log_exception(e, {"action": "update_employee", "employee_id": employee_id})
+        error(f"Erreur inattendue : {e}")
 
     finally:
         session.close()

@@ -10,3 +10,4 @@ from utils.permissions import (
     can_manage_employees, can_manage_contracts,
     can_manage_events, can_create_client, can_read_all
 )
+from utils.sentry import init_sentry, log_exception, log_employee_event, log_contract_signed
