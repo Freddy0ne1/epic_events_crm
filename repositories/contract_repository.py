@@ -1,7 +1,6 @@
 # repositories/contract_repository.py
 """
 Repository Contract — toutes les opérations BDD liées aux contrats.
-Inclut les filtres demandés par le cahier des charges.
 """
 
 from sqlalchemy.orm import Session
@@ -13,6 +12,8 @@ class ContractRepository:
 
     def __init__(self, session: Session):
         self.session = session
+
+    # --- Lecture (étape 5) ---
 
     def get_all(self) -> list[Contract]:
         """Retourne tous les contrats."""
@@ -36,28 +37,78 @@ class ContractRepository:
             Contract.sales_contact_id == employee_id
         ).all()
 
-    # --- Filtres demandés par le cahier des charges ---
-
     def get_unsigned(self) -> list[Contract]:
-        """
-        Filtre : retourne tous les contrats NON signés.
-        Utile pour les commerciaux qui veulent relancer leurs clients.
-        """
+        """Filtre : contrats non signés."""
         return self.session.query(Contract).filter(
             Contract.is_signed == False
         ).all()
 
     def get_signed(self) -> list[Contract]:
-        """Filtre : retourne tous les contrats signés."""
+        """Filtre : contrats signés."""
         return self.session.query(Contract).filter(
             Contract.is_signed == True
         ).all()
 
     def get_unpaid(self) -> list[Contract]:
-        """
-        Filtre : retourne tous les contrats pas encore entièrement payés.
-        Un contrat est non soldé si remaining_amount > 0.
-        """
+        """Filtre : contrats pas encore entièrement payés."""
         return self.session.query(Contract).filter(
             Contract.remaining_amount > 0
         ).all()
+
+    # --- Écriture (étape 6) ---
+
+    def create_contract(
+        self,
+        client_id: int,
+        sales_contact_id: int,
+        total_amount: float,
+        remaining_amount: float,
+        is_signed: bool = False
+    ) -> Contract:
+        """
+        Crée un nouveau contrat.
+        Réservé au département gestion (vérifié dans la couche permissions).
+        """
+        contract = Contract(
+            client_id=client_id,
+            sales_contact_id=sales_contact_id,
+            total_amount=total_amount,
+            remaining_amount=remaining_amount,
+            is_signed=is_signed
+        )
+        self.session.add(contract)
+        self.session.commit()
+        self.session.refresh(contract)
+        return contract
+
+    def update_contract(
+        self,
+        contract_id: int,
+        total_amount: float = None,
+        remaining_amount: float = None,
+        is_signed: bool = None,
+        sales_contact_id: int = None,
+        client_id: int = None
+    ) -> Contract | None:
+        """
+        Met à jour un contrat existant.
+        Tous les champs sont modifiables, y compris les relationnels.
+        """
+        contract = self.get_by_id(contract_id)
+        if not contract:
+            return None
+
+        if total_amount is not None:
+            contract.total_amount = total_amount
+        if remaining_amount is not None:
+            contract.remaining_amount = remaining_amount
+        if is_signed is not None:
+            contract.is_signed = is_signed
+        if sales_contact_id is not None:
+            contract.sales_contact_id = sales_contact_id
+        if client_id is not None:
+            contract.client_id = client_id
+
+        self.session.commit()
+        self.session.refresh(contract)
+        return contract
