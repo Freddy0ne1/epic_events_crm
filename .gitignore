@@ -5,14 +5,13 @@ venv/
 # Variables d'environnement sensibles
 .env
 
-# Token JWT (ne jamais publier !)
+# Token JWT
 .token
 
 # Python
 __pycache__/
 *.pyc
 *.pyo
-*.pyd
 
 # Coverage
 .coverage
@@ -23,3 +22,6 @@ htmlcov/
 
 # VSCode
 .vscode/
+
+# Script one-shot
+create_admin.py

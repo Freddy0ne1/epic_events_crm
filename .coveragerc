@@ -1,0 +1,11 @@
+[run]
+omit =
+    env/*
+    tests/*
+    epicevents.py
+    init_db.py
+    cli/*
+
+[report]
+exclude_lines =
+    if __name__ == "__main__":
