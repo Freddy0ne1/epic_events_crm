@@ -1,0 +1,25 @@
+# Environnement virtuel
+env/
+venv/
+
+# Variables d'environnement sensibles
+.env
+
+# Token JWT (ne jamais publier !)
+.token
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Coverage
+.coverage
+htmlcov/
+
+# Pytest
+.pytest_cache/
+
+# VSCode
+.vscode/
