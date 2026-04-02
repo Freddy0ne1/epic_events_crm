@@ -171,6 +171,10 @@ Lance-le puis supprime-le :
     ├── init_db.py                ← Initialisation BDD
     └── requirements.txt
 
+
+## Schéma de la base de données
+![Schéma ERD](docs/schema_bdd.png)
+
 ## Technologies utilisées
 
 - **Python 3.13**
