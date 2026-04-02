@@ -35,6 +35,7 @@ def init_sentry():
         # Envoie les variables locales avec chaque erreur
         # (utile pour déboguer)
         include_local_variables=True,
+        debug=False,
     )
 
 
