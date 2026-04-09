@@ -78,16 +78,23 @@ def print_clients(clients: list):
     table.add_column("Email", width=30)
     table.add_column("Téléphone", width=20)
     table.add_column("Entreprise", width=25)
+    table.add_column("Premier contact", width=15)
+    table.add_column("Dernière MAJ", width=15)
     table.add_column("Commercial", width=20)
 
     for client in clients:
         commercial = client.sales_contact.full_name if client.sales_contact else "—"
+        created = client.created_at.strftime("%d/%m/%Y") if client.created_at else "—"
+        updated = client.updated_at.strftime("%d/%m/%Y") if client.updated_at else "—"
+
         table.add_row(
             str(client.id),
             client.full_name,
             client.email,
             client.phone or "—",
             client.company_name or "—",
+            created,
+            updated,
             commercial
         )
 
@@ -107,23 +114,30 @@ def print_contracts(contracts: list):
         header_style="bold cyan"
     )
     table.add_column("ID", style="dim", width=6)
-    table.add_column("Client", width=25)
-    table.add_column("Montant total", width=15)
-    table.add_column("Reste à payer", width=15)
-    table.add_column("Signé", width=10)
+    table.add_column("Client", width=20)
+    table.add_column("Email client", width=25)
     table.add_column("Commercial", width=20)
+    table.add_column("Montant total", width=14)
+    table.add_column("Reste à payer", width=14)
+    table.add_column("Créé le", width=12)
+    table.add_column("Signé", width=8)
 
     for contract in contracts:
-        client_name = contract.client.full_name if contract.client else "—"
-        commercial = contract.sales_contact.full_name if contract.sales_contact else "—"
-        signed = "[green]Oui[/green]" if contract.is_signed else "[red]Non[/red]"
+        client_name  = contract.client.full_name if contract.client else "—"
+        client_email = contract.client.email if contract.client else "—"
+        commercial   = contract.sales_contact.full_name if contract.sales_contact else "—"
+        created      = contract.created_at.strftime("%d/%m/%Y") if contract.created_at else "—"
+        signed       = "[green]Oui[/green]" if contract.is_signed else "[red]Non[/red]"
+
         table.add_row(
             str(contract.id),
             client_name,
+            client_email,
+            commercial,
             f"{contract.total_amount:.2f} €",
             f"{contract.remaining_amount:.2f} €",
-            signed,
-            commercial
+            created,
+            signed
         )
 
     console.print(table)
@@ -141,25 +155,46 @@ def print_events(events: list):
         show_header=True,
         header_style="bold cyan"
     )
-    table.add_column("ID", style="dim", width=6)
-    table.add_column("Nom", width=25)
-    table.add_column("Client", width=20)
-    table.add_column("Début", width=18)
-    table.add_column("Fin", width=18)
-    table.add_column("Lieu", width=25)
-    table.add_column("Support", width=20)
+    table.add_column("Event ID", style="dim", width=10)
+    table.add_column("Nom événement", width=22)
+    table.add_column("Contract ID", style="dim", width=12)
+    table.add_column("Client name", width=18)
+    table.add_column("Client contact", width=28)
+    table.add_column("Event date start", width=20)
+    table.add_column("Event date end", width=20)
+    table.add_column("Support contact", width=18)
+    table.add_column("Location", width=30)
+    table.add_column("Attendees", width=10)
+    table.add_column("Notes", width=35)
 
     for event in events:
-        client_name = event.contract.client.full_name if event.contract and event.contract.client else "—"
+        # Infos client via le contrat
+        client      = event.contract.client if event.contract and event.contract.client else None
+        client_name = client.full_name if client else "—"
+
+        # Email + téléphone sur deux lignes
+        if client:
+            client_contact = f"{client.email}\n{client.phone or '—'}"
+        else:
+            client_contact = "—"
+
         support = event.support_contact.full_name if event.support_contact else "[yellow]Non assigné[/yellow]"
+
+        start = event.start_date.strftime("%d %b %Y @ %I%p") if event.start_date else "—"
+        end   = event.end_date.strftime("%d %b %Y @ %I%p")   if event.end_date   else "—"
+
         table.add_row(
             str(event.id),
             event.name,
+            str(event.contract_id),
             client_name,
-            event.start_date.strftime("%d/%m/%Y %H:%M"),
-            event.end_date.strftime("%d/%m/%Y %H:%M"),
-            event.location or "—",
-            support
+            client_contact,
+            start,
+            end,
+            support,
+            event.location  or "—",
+            str(event.attendees) if event.attendees else "—",
+            event.notes     or "—"
         )
 
     console.print(table)
